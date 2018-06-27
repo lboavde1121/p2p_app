@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Voicechat</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/0.3.14/peer.js"></script>
+  <script>
+    var peer;
+    var socket = io();
+    var options = {
+      host: location.hostname,
+      port: location.port,
+      path: '/api', // app.use('/api', peerServer);と同じ位置になるように
+    };
+    socket.on('connect', () => {
+      peer = new Peer(socket.id, options);
+      peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+          var textbox = document.querySelector('#text_box');
+          textbox.innerHTML += data;
+          console.log(data);
+        });
+      });
+    });
+
+    var socketkeys = [];
+    socket.on('keys', (keys) => {
+      var index = keys.indexOf(socket.id);
+      console.log(socket.id);
+      console.log(index);
+      console.log(keys);
+      if (index > -1) {
+        keys.splice(index, 1);// 自分自身を無視
+      }
+      console.log(keys);
+      socketkeys = [];
+      keys.forEach( (key) => {
+        console.log(key);
+        var conn = peer.connect(key);
+        conn.on('open', () => {
+          // here you have conn.id
+          // conn.send(key);
+          socketkeys.push(key)
+        });
+      });
+    });
+
+    var test = () => {
+      console.log(socketkeys);
+      var text = document.querySelector('#input').value;
+      console.log(text);
+      socketkeys.forEach( (key) => {
+        var conn = peer.connect(key);
+        conn.on('open', () => {
+          // here you have conn.id
+          conn.send(text);
+        });
+      });
+      document.querySelector('#input').value = ""
+    }
+  </script>
+</head>
+<body>
+
+<div>
+  <input id="input" type="text" name="test">
+  <button type="button" onmousedown="test();" class="sent">送信</button>
+</div>
+<div id="text_box">
+
+</div>
+
+</body>
+</html>
